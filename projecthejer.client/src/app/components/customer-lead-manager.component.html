@@ -1,0 +1,681 @@
+<div class="manager-container">
+  <!-- Toast Notification -->
+  <div 
+    *ngIf="notification.show" 
+    class="toast-notification animate-slide-down"
+    [ngClass]="'toast-' + notification.type"
+  >
+    <div class="toast-content">
+      <svg *ngIf="notification.type === 'success'" class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20,6 9,17 4,12"/>
+      </svg>
+      <svg *ngIf="notification.type === 'error'" class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      <svg *ngIf="notification.type === 'info'" class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span class="toast-message">{{ notification.message }}</span>
+    </div>
+    <button class="toast-close" (click)="hideNotification()" aria-label="Close notification">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Enhanced Tab Navigation -->
+  <nav class="tab-navigation" role="tablist">
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'customers'"
+      (click)="activeTab = 'customers'"
+      role="tab"
+      [attr.aria-selected]="activeTab === 'customers'"
+      aria-controls="customers-panel"
+    >
+      <span>Customers</span>
+      <span class="tab-count">{{ customers.length }}</span>
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'leads'"
+      (click)="activeTab = 'leads'"
+      role="tab"
+      [attr.aria-selected]="activeTab === 'leads'"
+      aria-controls="leads-panel"
+    >
+      <span>Leads</span>
+      <span class="tab-count">{{ leads.length }}</span>
+    </button>
+  </nav>
+
+  <!-- Customers Tab Panel -->
+  <div 
+    *ngIf="activeTab === 'customers'" 
+    class="tab-content animate-fade-in"
+    id="customers-panel"
+    role="tabpanel"
+    aria-labelledby="customers-tab"
+  >
+    <!-- Enhanced Actions Bar with Better Balance -->
+    <div class="actions-bar balanced">
+      <div class="actions-left">
+        <button 
+          class="btn btn-success" 
+          (click)="showCreateCustomerForm = !showCreateCustomerForm"
+          [attr.aria-expanded]="showCreateCustomerForm"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          {{ showCreateCustomerForm ? 'Cancel' : 'Add Customer' }}
+        </button>
+      </div>
+      
+      <div class="actions-center">
+        <div class="search-input">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input 
+            type="text" 
+            class="form-input" 
+            placeholder="Search customers..."
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+          >
+        </div>
+      </div>
+      
+      <div class="actions-right">
+        <span class="results-count">{{ filteredCustomers.length }} {{ filteredCustomers.length === 1 ? 'customer' : 'customers' }}</span>
+      </div>
+    </div>
+
+    <!-- Enhanced Create Customer Form -->
+    <div *ngIf="showCreateCustomerForm" class="create-form animate-slide-down">
+      <div class="form-header">
+        <h3>Create New Customer</h3>
+      </div>
+      
+      <form (ngSubmit)="createCustomer()" #customerForm="ngForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label required">Full Name</label>
+            <input 
+              type="text" 
+              class="form-input"
+              [(ngModel)]="newCustomer.name" 
+              name="customerName" 
+              required
+              placeholder="Enter customer name"
+              autocomplete="name"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input 
+              type="email" 
+              class="form-input"
+              [(ngModel)]="newCustomer.email" 
+              name="customerEmail"
+              placeholder="customer@example.com"
+              autocomplete="email"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input 
+              type="tel" 
+              class="form-input"
+              [(ngModel)]="newCustomer.phone" 
+              name="customerPhone"
+              placeholder="+1 (555) 123-4567"
+              autocomplete="tel"
+            >
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          <textarea 
+            class="form-textarea"
+            [(ngModel)]="newCustomer.address" 
+            name="customerAddress"
+            placeholder="Enter customer address"
+            autocomplete="street-address"
+          ></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetCustomerForm()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="!customerForm.form.valid || loading.creatingCustomer">
+            <svg *ngIf="loading.creatingCustomer" class="loading-spinner" width="16" height="16" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" fill="none"/>
+            </svg>
+            <svg *ngIf="!loading.creatingCustomer" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            {{ loading.creatingCustomer ? 'Creating...' : 'Create Customer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Enhanced Customers Grid -->
+    <div class="entities-grid" *ngIf="filteredCustomers.length > 0; else noCustomers">
+      <div *ngFor="let customer of filteredCustomers; trackBy: trackByCustomerId" class="entity-card">
+        <div class="entity-header">
+          <div class="entity-avatar">
+            {{ getInitials(customer.name) }}
+          </div>
+          <div class="entity-info">
+            <h3 class="entity-name">{{ customer.name }}</h3>
+            <div class="entity-meta">
+              <span class="image-count-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="9" cy="9" r="2"/>
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                </svg>
+                {{ customer.imageCount }}/10
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="entity-details">
+          <div *ngIf="customer.email" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            {{ customer.email }}
+          </div>
+          
+          <div *ngIf="customer.phone" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            {{ customer.phone }}
+          </div>
+          
+          <div *ngIf="customer.address" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            {{ customer.address }}
+          </div>
+          
+          <div class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            Created {{ customer.createdDate | date:'medium' }}
+          </div>
+        </div>
+
+        <div class="entity-actions">
+          <button 
+            class="btn-images" 
+            [class.expanded]="expandedCustomer === customer.id"
+            (click)="toggleCustomerImages(customer.id)"
+            [attr.aria-expanded]="expandedCustomer === customer.id"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            <span>{{ expandedCustomer === customer.id ? 'Hide' : 'Manage' }} Images</span>
+            <span class="image-counter">({{ customer.imageCount }}/10)</span>
+          </button>
+          
+          <button class="btn btn-sm btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+            </svg>
+          </button>
+          
+          <button 
+            class="btn btn-sm btn-danger" 
+            (click)="deleteCustomer(customer.id)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3,6 5,6 21,6"/>
+              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Enhanced Customer Images Section -->
+        <div *ngIf="expandedCustomer === customer.id" class="images-section">
+          <div class="images-section-header">
+            <h4 class="images-section-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+              {{ customer.name }}'s Images
+            </h4>
+          </div>
+          <app-image-gallery
+            [images]="customerImages"
+            [entityId]="customer.id"
+            entityType="customer"
+            (upload)="uploadCustomerImages(customer.id, $event)"
+            (delete)="deleteCustomerImage(customer.id, $event)"
+            (imageClick)="showImageModal($event)"
+          ></app-image-gallery>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State for Customers -->
+    <ng-template #noCustomers>
+      <div class="empty-state">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <h3>No customers yet</h3>
+        <p>Get started by creating your first customer. You can add their information and manage up to 10 images per customer.</p>
+        <button 
+          class="btn btn-primary" 
+          (click)="showCreateCustomerForm = true"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Create First Customer
+        </button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Leads Tab Panel -->
+  <div 
+    *ngIf="activeTab === 'leads'" 
+    class="tab-content animate-fade-in"
+    id="leads-panel"
+    role="tabpanel"
+    aria-labelledby="leads-tab"
+  >
+    <!-- Enhanced Actions Bar -->
+    <div class="actions-bar">
+      <div class="actions-left">
+        <button 
+          class="btn btn-success" 
+          (click)="showCreateLeadForm = !showCreateLeadForm"
+          [attr.aria-expanded]="showCreateLeadForm"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          {{ showCreateLeadForm ? 'Cancel' : 'Add Lead' }}
+        </button>
+      </div>
+      <div class="actions-right">
+        <div class="search-input">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input 
+            type="text" 
+            class="form-input" 
+            placeholder="Search leads..."
+            [(ngModel)]="searchTermLeads"
+            (input)="onSearchLeads()"
+          >
+        </div>
+        <select class="form-select filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="New">New</option>
+          <option value="Contacted">Contacted</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Converted">Converted</option>
+          <option value="Lost">Lost</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Enhanced Create Lead Form -->
+    <div *ngIf="showCreateLeadForm" class="create-form animate-slide-down">
+      <div class="form-header">
+        <h3>Create New Lead</h3>
+      </div>
+      
+      <form (ngSubmit)="createLead()" #leadForm="ngForm">
+        <div class="form-grid three-cols">
+          <div class="form-group">
+            <label class="form-label required">Full Name</label>
+            <input 
+              type="text" 
+              class="form-input"
+              [(ngModel)]="newLead.name" 
+              name="leadName" 
+              required
+              placeholder="Enter lead name"
+              autocomplete="name"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input 
+              type="email" 
+              class="form-input"
+              [(ngModel)]="newLead.email" 
+              name="leadEmail"
+              placeholder="lead@example.com"
+              autocomplete="email"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input 
+              type="tel" 
+              class="form-input"
+              [(ngModel)]="newLead.phone" 
+              name="leadPhone"
+              placeholder="+1 (555) 123-4567"
+              autocomplete="tel"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Company</label>
+            <input 
+              type="text" 
+              class="form-input"
+              [(ngModel)]="newLead.company" 
+              name="leadCompany"
+              placeholder="Company name"
+              autocomplete="organization"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Source</label>
+            <input 
+              type="text" 
+              class="form-input"
+              [(ngModel)]="newLead.source" 
+              name="leadSource"
+              placeholder="e.g., Website, Referral"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" [(ngModel)]="newLead.status" name="leadStatus">
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Converted">Converted</option>
+              <option value="Lost">Lost</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetLeadForm()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="!leadForm.form.valid || loading.creatingLead">
+            <svg *ngIf="loading.creatingLead" class="loading-spinner" width="16" height="16" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" fill="none"/>
+            </svg>
+            <svg *ngIf="!loading.creatingLead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            {{ loading.creatingLead ? 'Creating...' : 'Create Lead' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Enhanced Leads Grid -->
+    <div class="entities-grid" *ngIf="filteredLeads.length > 0; else noLeads">
+      <div *ngFor="let lead of filteredLeads; trackBy: trackByLeadId" class="entity-card">
+        <div class="entity-header">
+          <div class="entity-avatar">
+            {{ getInitials(lead.name) }}
+          </div>
+          <div class="entity-info">
+            <h3 class="entity-name">{{ lead.name }}</h3>
+            <div class="entity-meta">
+              <span class="image-count-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="9" cy="9" r="2"/>
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                </svg>
+                {{ lead.imageCount }}/10
+              </span>
+              <span class="status-badge" [ngClass]="'status-' + lead.status.toLowerCase()">
+                {{ lead.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="entity-details">
+          <div *ngIf="lead.email" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            {{ lead.email }}
+          </div>
+          
+          <div *ngIf="lead.phone" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            {{ lead.phone }}
+          </div>
+          
+          <div *ngIf="lead.company" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 21h18"/>
+              <path d="M5 21V7l8-4v18"/>
+              <path d="M19 21V11l-6-4"/>
+            </svg>
+            {{ lead.company }}
+          </div>
+          
+          <div *ngIf="lead.source" class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M16 8v5a3 3 0 0 0 6 0v-5a10 10 0 1 0-20 0v5a3 3 0 0 0 6 0v-5"/>
+            </svg>
+            {{ lead.source }}
+          </div>
+          
+          <div class="detail-item">
+            <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            Created {{ lead.createdDate | date:'medium' }}
+          </div>
+        </div>
+
+        <div class="entity-actions">
+          <button 
+            class="btn btn-sm btn-primary" 
+            (click)="toggleLeadImages(lead.id)"
+            [attr.aria-expanded]="expandedLead === lead.id"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            {{ expandedLead === lead.id ? 'Hide' : 'Show' }} Images
+          </button>
+          
+          <button class="btn btn-sm btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+            </svg>
+            Edit
+          </button>
+          
+          <button 
+            class="btn btn-sm btn-danger" 
+            (click)="deleteLead(lead.id)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3,6 5,6 21,6"/>
+              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+        
+        <!-- Enhanced Lead Images Section -->
+        <div *ngIf="expandedLead === lead.id" class="images-section">
+          <div class="images-section-header">
+            <h4 class="images-section-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+              {{ lead.name }}'s Images
+            </h4>
+          </div>
+          <app-image-gallery
+            [images]="leadImages"
+            [entityId]="lead.id"
+            entityType="lead"
+            (upload)="uploadLeadImages(lead.id, $event)"
+            (delete)="deleteLeadImage(lead.id, $event)"
+            (imageClick)="showImageModal($event)"
+          ></app-image-gallery>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State for Leads -->
+    <ng-template #noLeads>
+      <div class="empty-state">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <h3>No leads yet</h3>
+        <p>Start building your sales pipeline by adding your first lead. Track their progress and manage their information all in one place.</p>
+        <button 
+          class="btn btn-primary" 
+          (click)="showCreateLeadForm = true"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Create First Lead
+        </button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Full-Screen Image Modal - NEW: Global modal overlay -->
+  <div 
+    *ngIf="selectedImage" 
+    class="global-modal-overlay" 
+    (click)="onModalOverlayClick($event)"
+    (keydown)="onModalKeydown($event)"
+    tabindex="0"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Image preview: ' + (selectedImage.fileName || 'Image')"
+  >
+    <div class="global-modal-content" (click)="onModalContentClick($event)">
+      <div class="global-modal-header">
+        <h3 class="global-modal-title">{{ selectedImage.fileName || 'Image' }}</h3>
+        <button 
+          type="button"
+          class="global-close-btn" 
+          (click)="closeImageModal()"
+          aria-label="Close image preview"
+          title="Close (Esc)"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      
+      <img 
+        class="global-modal-image"
+        [src]="'data:' + (selectedImage.contentType || 'image/jpeg') + ';base64,' + selectedImage.imageData"
+        [alt]="selectedImage.fileName || 'Image'"
+        loading="eager"
+      >
+      
+      <div class="global-modal-footer">
+        <div class="global-modal-info">
+          <div class="global-modal-info-item">
+            <svg class="global-modal-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            {{ selectedImage.fileName || 'Untitled' }}
+          </div>
+          
+          <div class="global-modal-info-item">
+            <svg class="global-modal-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="7.5,4.21 12,6.81 16.5,4.21"/>
+              <polyline points="7.5,19.79 7.5,14.6 3,12"/>
+              <polyline points="21,12 16.5,14.6 16.5,19.79"/>
+            </svg>
+            {{ formatFileSize(selectedImage.fileSize) }}
+          </div>
+          
+          <div class="global-modal-info-item">
+            <svg class="global-modal-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            {{ selectedImage.uploadedDate | date:'medium' }}
+          </div>
+          
+          <div class="global-modal-info-item">
+            <svg class="global-modal-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            {{ selectedImage.contentType || 'Unknown format' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
